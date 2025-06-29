@@ -4,9 +4,10 @@ const {
   getPostsByUserId,
   deletePost,
   getFeedPosts,
+  updatePost,
 } = require("../models/post.js");
+
 const logger = require("../utils/logger");
-const { updatePost } = require("../models/post");
 
 const create = async (req, res) => {
   try {
@@ -18,19 +19,17 @@ const create = async (req, res) => {
       content,
       media_url,
       comments_enabled,
-      scheduled_at, 
+      scheduled_at,
     });
 
     logger.verbose(`User ${userId} created post ${post.id}`);
     res.status(201).json({ message: "Post created successfully", post });
   } catch (error) {
-    logger.critical("Create post error:", error);
+    logger.critical("Error creating post:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 };
 
-
-// Get post by ID
 const getById = async (req, res) => {
   try {
     const { post_id } = req.params;
@@ -42,12 +41,11 @@ const getById = async (req, res) => {
 
     res.json({ post });
   } catch (error) {
-    logger.critical("Get post error:", error);
+    logger.critical("Error fetching post:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 };
 
-// Get posts by user
 const getUserPosts = async (req, res) => {
   try {
     const { user_id } = req.params;
@@ -56,6 +54,7 @@ const getUserPosts = async (req, res) => {
     const offset = (page - 1) * limit;
 
     const posts = await getPostsByUserId(parseInt(user_id), limit, offset);
+
     res.json({
       posts,
       pagination: {
@@ -65,12 +64,11 @@ const getUserPosts = async (req, res) => {
       },
     });
   } catch (error) {
-    logger.critical("Get user posts error:", error);
+    logger.critical("Error fetching user's posts:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 };
 
-// Get current user's posts
 const getMyPosts = async (req, res) => {
   try {
     const userId = req.user.id;
@@ -79,6 +77,7 @@ const getMyPosts = async (req, res) => {
     const offset = (page - 1) * limit;
 
     const posts = await getPostsByUserId(userId, limit, offset);
+
     res.json({
       posts,
       pagination: {
@@ -88,7 +87,7 @@ const getMyPosts = async (req, res) => {
       },
     });
   } catch (error) {
-    logger.critical("Get my posts error:", error);
+    logger.critical("Error fetching your posts:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 };
@@ -101,6 +100,7 @@ const getFeed = async (req, res) => {
     const offset = (page - 1) * limit;
 
     const posts = await getFeedPosts(userId, limit, offset);
+
     res.json({
       posts,
       pagination: {
@@ -110,7 +110,7 @@ const getFeed = async (req, res) => {
       },
     });
   } catch (error) {
-    logger.critical("Get feed error:", error);
+    logger.critical("Error fetching feed:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 };
@@ -122,13 +122,13 @@ const remove = async (req, res) => {
 
     const success = await deletePost(parseInt(post_id), userId);
     if (!success) {
-      return res.status(404).json({ error: "Post not found or unauthorized" });
+      return res.status(404).json({ error: "Post not found or you're not authorized" });
     }
 
     logger.verbose(`User ${userId} deleted post ${post_id}`);
     res.json({ message: "Post deleted successfully" });
   } catch (error) {
-    logger.critical("Delete post error:", error);
+    logger.critical("Error deleting post:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 };
@@ -142,24 +142,23 @@ const update = async (req, res) => {
     const updated = await updatePost(parseInt(post_id), userId, updates);
 
     if (!updated) {
-      return res.status(404).json({ error: "Post not found or unauthorized" });
+      return res.status(404).json({ error: "Post not found or you're not authorized" });
     }
 
     logger.verbose(`User ${userId} updated post ${post_id}`);
     res.json({ message: "Post updated successfully", post: updated });
   } catch (error) {
-    logger.critical("Update post error:", error);
+    logger.critical("Error updating post:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 };
-
 
 module.exports = {
   create,
   getById,
   getUserPosts,
   getMyPosts,
+  getFeed,
   remove,
-  update, 
-  getFeed, 
+  update,
 };

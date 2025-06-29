@@ -3,9 +3,9 @@ const {
   getUserByUsername,
   verifyPassword,
 } = require("../models/user");
+
 const { generateToken } = require("../utils/jwt");
 const logger = require("../utils/logger");
-
 
 const register = async (req, res) => {
   try {
@@ -18,9 +18,9 @@ const register = async (req, res) => {
       username: user.username,
     });
 
-    logger.verbose(`New user registered: ${username}`);
+    logger.verbose(`User registered: ${username}`);
 
-    res.status(201).json({
+    return res.status(201).json({
       message: "User registered successfully",
       user: {
         id: user.id,
@@ -31,8 +31,8 @@ const register = async (req, res) => {
       token,
     });
   } catch (error) {
-    logger.critical("Registration error:", error);
-    res.status(500).json({ error: "Internal server error" });
+    logger.critical("Error during registration:", error);
+    return res.status(500).json({ error: "Internal server error" });
   }
 };
 
@@ -40,19 +40,16 @@ const login = async (req, res) => {
   try {
     const { username, password } = req.validatedData;
 
-    // Find user
     const user = await getUserByUsername(username);
     if (!user) {
       return res.status(401).json({ error: "Invalid credentials" });
     }
 
-    // Verify password
-    const isValidPassword = await verifyPassword(password, user.password_hash);
-    if (!isValidPassword) {
+    const isValid = await verifyPassword(password, user.password_hash);
+    if (!isValid) {
       return res.status(401).json({ error: "Invalid credentials" });
     }
 
-    // Generate token
     const token = generateToken({
       userId: user.id,
       username: user.username,
@@ -60,7 +57,7 @@ const login = async (req, res) => {
 
     logger.verbose(`User logged in: ${username}`);
 
-    res.json({
+    return res.json({
       message: "Login successful",
       user: {
         id: user.id,
@@ -71,8 +68,8 @@ const login = async (req, res) => {
       token,
     });
   } catch (error) {
-    logger.critical("Login error:", error);
-    res.status(500).json({ error: "Internal server error" });
+    logger.critical("Error during login:", error);
+    return res.status(500).json({ error: "Internal server error" });
   }
 };
 
@@ -80,7 +77,7 @@ const getProfile = async (req, res) => {
   try {
     const user = req.user;
 
-    res.json({
+    return res.json({
       user: {
         id: user.id,
         username: user.username,
@@ -90,8 +87,8 @@ const getProfile = async (req, res) => {
       },
     });
   } catch (error) {
-    logger.critical("Get profile error:", error);
-    res.status(500).json({ error: "Internal server error" });
+    logger.critical("Error fetching user profile:", error);
+    return res.status(500).json({ error: "Internal server error" });
   }
 };
 

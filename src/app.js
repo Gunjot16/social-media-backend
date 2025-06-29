@@ -4,9 +4,9 @@ const helmet = require("helmet");
 require("dotenv").config();
 require("./scheduledPosts");
 
-
 const logger = require("./utils/logger");
 const { connectDB } = require("./utils/database");
+
 const authRoutes = require("./routes/auth");
 const userRoutes = require("./routes/users");
 const postRoutes = require("./routes/posts");
@@ -18,11 +18,9 @@ const PORT = process.env.PORT || 3000;
 
 app.use(helmet());
 app.use(cors());
-
 app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 
-// API routes
 app.use("/api/auth", authRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/posts", postRoutes);
@@ -41,22 +39,16 @@ app.use((err, req, res, next) => {
 	});
 });
 
-// 404 handler
 app.use("*", (req, res) => {
 	res.status(404).json({ error: "Route not found" });
 });
 
-/**
- * Start the server
- */
 const startServer = async () => {
 	try {
 		await connectDB();
 		app.listen(PORT, () => {
 			logger.verbose(`Server is running on port ${PORT}`);
-			logger.verbose(
-				`Environment: ${process.env.NODE_ENV || "development"}`
-			);
+			logger.verbose(`Environment: ${process.env.NODE_ENV || "development"}`);
 		});
 	} catch (error) {
 		logger.critical("Failed to start server:", error);
