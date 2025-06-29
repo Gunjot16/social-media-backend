@@ -1,93 +1,168 @@
+const logger = require("../utils/logger");
+const followModel = require("../models/follow");
+const userModel = require("../models/user");
 const { query } = require("../utils/database");
 
+exports.followUser = async (req, res) => {
+  try {
+    const followerId = req.user.id;
+    const followedId = Number(req.params.id);
 
-const followUser = async (followerId, followeeId) => {
-	await query(
-		`INSERT INTO follows (follower_id, followee_id)
-		 VALUES ($1, $2)
-		 ON CONFLICT DO NOTHING`,
-		[followerId, followeeId]
-	);
+    if (isNaN(followedId)) {
+      return res.status(400).json({ error: "Invalid user ID." });
+    }
+
+    if (followerId === followedId) {
+      return res.status(400).json({ error: "You can't follow yourself." });
+    }
+
+    const userToFollow = await userModel.getUserById(followedId);
+    if (!userToFollow) {
+      return res.status(404).json({ error: "Target user does not exist." });
+    }
+
+    const isAlreadyFollowing = await followModel.checkIfFollowing(followerId, followedId);
+    if (isAlreadyFollowing) {
+      return res.status(400).json({ error: "You are already following this user." });
+    }
+
+    await followModel.followUser(followerId, followedId);
+    res.status(200).json({ message: "Now following the user." });
+
+  } catch (error) {
+    logger.critical("Error while trying to follow user:", error);
+    res.status(500).json({ error: "Something went wrong. Please try again." });
+  }
 };
 
-const unfollowUser = async (followerId, followeeId) => {
-	await query(
-		`DELETE FROM follows
-		 WHERE follower_id = $1 AND followee_id = $2`,
-		[followerId, followeeId]
-	);
+exports.unfollowUser = async (req, res) => {
+  try {
+    const followerId = req.user.id;
+    const followedId = Number(req.params.id);
+
+    if (isNaN(followedId)) {
+      return res.status(400).json({ error: "Invalid user ID." });
+    }
+
+    const userToUnfollow = await userModel.getUserById(followedId);
+    if (!userToUnfollow) {
+      return res.status(404).json({ error: "User not found." });
+    }
+
+    const isFollowing = await followModel.checkIfFollowing(followerId, followedId);
+    if (!isFollowing) {
+      return res.status(400).json({ error: "You are not following this user." });
+    }
+
+    await followModel.unfollowUser(followerId, followedId);
+    res.status(200).json({ message: "Unfollowed the user successfully." });
+
+  } catch (error) {
+    logger.critical("Error while unfollowing user:", error);
+    res.status(500).json({ error: "Something went wrong. Please try again." });
+  }
 };
 
-
-const checkIfFollowing = async (followerId, followeeId) => {
-	const result = await query(
-		`SELECT 1 FROM follows
-		 WHERE follower_id = $1 AND followee_id = $2`,
-		[followerId, followeeId]
-	);
-	return result.rowCount > 0;
+exports.getMyFollowing = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const followingList = await followModel.getFollowing(userId);
+    res.status(200).json({ following: followingList });
+  } catch (error) {
+    logger.critical("Error fetching following list:", error);
+    res.status(500).json({ error: "Unable to fetch following list." });
+  }
 };
 
-
-const getFollowing = async (userId) => {
-	const result = await query(
-		`SELECT u.id, u.username, u.full_name, u.email
-		 FROM users u
-		 JOIN follows f ON u.id = f.followee_id
-		 WHERE f.follower_id = $1`,
-		[userId]
-	);
-	return result.rows;
+exports.getMyFollowers = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const followerList = await followModel.getFollowers(userId);
+    res.status(200).json({ followers: followerList });
+  } catch (error) {
+    logger.critical("Error fetching followers list:", error);
+    res.status(500).json({ error: "Unable to fetch followers list." });
+  }
 };
 
-
-const getFollowers = async (userId) => {
-	const result = await query(
-		`SELECT u.id, u.username, u.full_name, u.email
-		 FROM users u
-		 JOIN follows f ON u.id = f.follower_id
-		 WHERE f.followee_id = $1`,
-		[userId]
-	);
-	return result.rows;
+exports.getMyFollowStats = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const stats = await followModel.getFollowCounts(userId);
+    res.status(200).json({ stats });
+  } catch (error) {
+    logger.critical("Error retrieving follow stats:", error);
+    res.status(500).json({ error: "Unable to retrieve follow statistics." });
+  }
 };
 
+// --- Reused Functions Below ---
 
-const getFollowCounts = async (userId) => {
-	const result = await query(
-		`SELECT
-			(SELECT COUNT(*) FROM follows WHERE follower_id = $1) AS following_count,
-			(SELECT COUNT(*) FROM follows WHERE followee_id = $1) AS followers_count`,
-		[userId]
-	);
-	return result.rows[0];
+const {
+  createUser,
+  getUserByUsername,
+  verifyPassword,
+  getUserById,
+} = require("../models/user");
+
+const {
+  countFollowers,
+  countFollowing,
+} = require("../models/follow");
+
+const { getPostsByUserId } = require("../models/post");
+
+const getUserProfileById = async (req, res) => {
+  try {
+    const userId = Number(req.params.id);
+    if (isNaN(userId)) {
+      return res.status(400).json({ error: "Invalid user ID." });
+    }
+
+    const user = await getUserById(userId);
+    if (!user) {
+      return res.status(404).json({ error: "User not found." });
+    }
+
+    const followers = await countFollowers(userId);
+    const following = await countFollowing(userId);
+    const posts = await getPostsByUserId(userId); 
+
+    res.status(200).json({
+      user: {
+        id: user.id,
+        username: user.username,
+        full_name: user.full_name,
+        created_at: user.created_at,
+        followers,
+        following,
+        posts,
+      },
+    });
+  } catch (error) {
+    logger.critical("Error loading user profile by ID:", error);
+    res.status(500).json({ error: "Unable to retrieve user profile." });
+  }
 };
 
+exports.getUserProfileById = getUserProfileById;
 
-const countFollowers = async (userId) => {
-	const result = await query(
-		`SELECT COUNT(*) FROM follows WHERE followee_id = $1`,
-		[userId]
-	);
-	return parseInt(result.rows[0].count, 10);
-};
+exports.searchUsers = async (req, res) => {
+  const searchQuery = req.query.query;
 
+  if (!searchQuery) {
+    return res.status(400).json({ error: "Search query is required." });
+  }
 
-const countFollowing = async (userId) => {
-	const result = await query(
-		`SELECT COUNT(*) FROM follows WHERE follower_id = $1`,
-		[userId]
-	);
-	return parseInt(result.rows[0].count, 10);
-};
+  try {
+    const result = await query(
+      "SELECT id, username, full_name FROM users WHERE username ILIKE $1 OR full_name ILIKE $1",
+      [`%${searchQuery}%`]
+    );
 
-module.exports = {
-	followUser,
-	unfollowUser,
-	checkIfFollowing,
-	getFollowing,
-	getFollowers,
-	getFollowCounts,
-	countFollowers,
-	countFollowing,
+    res.status(200).json({ users: result.rows });
+  } catch (error) {
+    logger.critical("Error while searching users:", error);
+    res.status(500).json({ error: "Something went wrong during user search." });
+  }
 };

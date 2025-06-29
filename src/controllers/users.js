@@ -26,7 +26,7 @@ exports.followUser = async (req, res) => {
     res.status(200).json({ message: "Now following the user." });
 
   } catch (error) {
-    logger.error("Error while trying to follow user:", error);
+    logger.critical("Error while trying to follow user:", error);
     res.status(500).json({ error: "Something went wrong. Please try again." });
   }
 };
@@ -50,7 +50,7 @@ exports.unfollowUser = async (req, res) => {
     res.status(200).json({ message: "Unfollowed the user successfully." });
 
   } catch (error) {
-    logger.error("Error while unfollowing user:", error);
+    logger.critical("Error while unfollowing user:", error);
     res.status(500).json({ error: "Something went wrong. Please try again." });
   }
 };
@@ -61,7 +61,7 @@ exports.getMyFollowing = async (req, res) => {
     const followingList = await followModel.getFollowing(userId);
     res.status(200).json({ following: followingList });
   } catch (error) {
-    logger.error("Error fetching following list:", error);
+    logger.critical("Error fetching following list:", error);
     res.status(500).json({ error: "Unable to fetch following list." });
   }
 };
@@ -72,7 +72,7 @@ exports.getMyFollowers = async (req, res) => {
     const followerList = await followModel.getFollowers(userId);
     res.status(200).json({ followers: followerList });
   } catch (error) {
-    logger.error("Error fetching followers list:", error);
+    logger.critical("Error fetching followers list:", error);
     res.status(500).json({ error: "Unable to fetch followers list." });
   }
 };
@@ -83,7 +83,7 @@ exports.getMyFollowStats = async (req, res) => {
     const stats = await followModel.getFollowCounts(userId);
     res.status(200).json({ stats });
   } catch (error) {
-    logger.error("Error retrieving follow stats:", error);
+    logger.critical("Error retrieving follow stats:", error);
     res.status(500).json({ error: "Unable to retrieve follow statistics." });
   }
 };
@@ -147,7 +147,7 @@ exports.searchUsers = async (req, res) => {
 
     res.status(200).json({ users: result.rows });
   } catch (error) {
-    logger.error("Error while searching users:", error);
+    logger.critical("Error while searching users:", error);
     res.status(500).json({ error: "Something went wrong during user search." });
   }
 };
