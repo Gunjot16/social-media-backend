@@ -61,7 +61,7 @@ const getFeedPosts = async (userId, limit = 20, offset = 0) => {
      FROM posts p
      JOIN users u ON p.user_id = u.id
      WHERE (p.user_id = $1 OR p.user_id IN (
-              SELECT followee_id FROM follows WHERE follower_id = $1
+              SELECT followed_id FROM follows WHERE follower_id = $1
             ))
        AND (p.scheduled_at IS NULL OR p.scheduled_at <= NOW())
        AND p.is_deleted = false
@@ -71,6 +71,7 @@ const getFeedPosts = async (userId, limit = 20, offset = 0) => {
   );
   return result.rows;
 };
+
 
 const updatePost = async (postId, userId, updatedFields) => {
   const fields = [];

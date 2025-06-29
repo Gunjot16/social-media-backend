@@ -113,8 +113,11 @@ $$;
 -- =====================
 -- Indexes for performance
 -- =====================
+-- =====================
+-- Indexes for performance
+-- =====================
 CREATE INDEX IF NOT EXISTS idx_posts_user_id ON posts(user_id);
 CREATE INDEX IF NOT EXISTS idx_likes_post_id ON likes(post_id);
 CREATE INDEX IF NOT EXISTS idx_comments_post_id ON comments(post_id);
 CREATE INDEX IF NOT EXISTS idx_follows_follower_id ON follows(follower_id);
-CREATE INDEX IF NOT EXISTS idx_follows_following_id ON follows(following_id);
+CREATE INDEX IF NOT EXISTS idx_follows_followed_id ON follows(followed_id);
