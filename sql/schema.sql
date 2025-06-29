@@ -54,12 +54,15 @@ CREATE TABLE IF NOT EXISTS comments (
 -- =====================
 -- Follows table
 -- =====================
+-- =====================
+-- Follows table
+-- =====================
 CREATE TABLE IF NOT EXISTS follows (
     id SERIAL PRIMARY KEY,
     follower_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    following_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    followed_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    UNIQUE (follower_id, following_id)
+    UNIQUE (follower_id, followed_id)
 );
 
 -- =====================
