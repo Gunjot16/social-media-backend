@@ -30,7 +30,9 @@ app.use("/api/comments", commentRoutes);
 app.get("/health", (req, res) => {
 	res.status(200).json({ status: "OK", timestamp: new Date().toISOString() });
 });
-
+app.get('/', (req, res) => {
+  res.json({ message: 'API is running ' });
+});
 app.use((err, req, res, next) => {
 	logger.critical("Unhandled error:", err);
 	res.status(500).json({
