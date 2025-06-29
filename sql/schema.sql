@@ -1,5 +1,3 @@
-
-
 -- =====================
 -- Users table
 -- =====================
@@ -24,7 +22,7 @@ CREATE TABLE IF NOT EXISTS posts (
     media_url TEXT,
     comments_enabled BOOLEAN DEFAULT TRUE,
     is_deleted BOOLEAN DEFAULT FALSE,
-    scheduled_at TIMESTAMP, -- for scheduled posts
+    scheduled_at TIMESTAMP,
     is_published BOOLEAN DEFAULT TRUE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
@@ -76,16 +74,38 @@ END;
 $$ LANGUAGE plpgsql;
 
 -- =====================
--- Triggers for updated_at
+-- Triggers for updated_at (idempotent)
 -- =====================
-CREATE TRIGGER update_users_updated_at BEFORE UPDATE ON users
-    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_trigger WHERE tgname = 'update_users_updated_at'
+  ) THEN
+    CREATE TRIGGER update_users_updated_at
+    BEFORE UPDATE ON users
+    FOR EACH ROW
+    EXECUTE FUNCTION update_updated_at_column();
+  END IF;
 
-CREATE TRIGGER update_posts_updated_at BEFORE UPDATE ON posts
-    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_trigger WHERE tgname = 'update_posts_updated_at'
+  ) THEN
+    CREATE TRIGGER update_posts_updated_at
+    BEFORE UPDATE ON posts
+    FOR EACH ROW
+    EXECUTE FUNCTION update_updated_at_column();
+  END IF;
 
-CREATE TRIGGER update_comments_updated_at BEFORE UPDATE ON comments
-    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_trigger WHERE tgname = 'update_comments_updated_at'
+  ) THEN
+    CREATE TRIGGER update_comments_updated_at
+    BEFORE UPDATE ON comments
+    FOR EACH ROW
+    EXECUTE FUNCTION update_updated_at_column();
+  END IF;
+END;
+$$;
 
 -- =====================
 -- Indexes for performance
